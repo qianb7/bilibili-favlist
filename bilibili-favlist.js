@@ -38,12 +38,25 @@
   const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   const formatTime = (timestamp) =>
     timestamp ? new Date(timestamp * 1000).toLocaleString("zh-CN") : "";
+  const formatExportTime = (date) => {
+    const pad = (value) => String(value).padStart(2, "0");
+    return [
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate()),
+      "-",
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds()),
+    ].join("");
+  };
+  const sanitizeFileName = (value) => value.replace(/[\\/:*?"<>|]/g, "_").trim();
 
   try {
     const currentUrl = new URL(window.location.href);
     const mediaIdFromUrl = currentUrl.searchParams.get("fid") || "";
     const mediaIdInput = prompt(
-      "请输入收藏夹 ID（收藏夹页面 URL 中的 fid 参数）",
+      "请输入收藏夹 ID（fid）。在浏览器中打开目标收藏夹页面可自动获取，也可以手动填写 URL 中的 fid 参数。",
       mediaIdFromUrl,
     );
 
@@ -101,14 +114,27 @@
       }
     }
 
-    const header = ["标题", "UP主", "发布时间", "视频链接", "封面链接", "收藏夹标题"];
+    const header = [
+      "标题",
+      "简介",
+      "时长（s）",
+      "UP主",
+      "UP主id",
+      "发布时间",
+      "视频链接",
+      "封面链接",
+      "bvid",
+    ];
     const rows = videos.map((video) => [
       video.title,
+      video.intro,
+      video.duration,
       video.upper?.name,
+      video.upper?.mid,
       formatTime(video.pubtime),
       video.bvid ? `https://www.bilibili.com/video/${video.bvid}` : "",
       video.cover,
-      folderTitle,
+      video.bvid,
     ]);
     const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
 
@@ -116,7 +142,8 @@
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = downloadUrl;
-    link.download = `${folderTitle || `favlist-${mediaId}`}.csv`;
+    const fileName = sanitizeFileName(folderTitle || `favlist-${mediaId}`);
+    link.download = `${fileName}-${formatExportTime(new Date())}.csv`;
     link.click();
     URL.revokeObjectURL(downloadUrl);
 

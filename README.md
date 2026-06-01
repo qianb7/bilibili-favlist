@@ -20,6 +20,8 @@ https://space.bilibili.com/10001/favlist?fid=12345
 12345
 ```
 
+脚本会尝试从当前页面 URL 中自动读取 `fid`。如果当前页面不是收藏夹页面，输入框会保持为空。此时可以打开目标收藏夹页面后重新执行脚本，也可以手动填写 URL 中的 `fid` 参数。
+
 ### 2. 执行脚本
 
 1. 确保浏览器已经登录哔哩哔哩。
@@ -68,12 +70,25 @@ https://space.bilibili.com/10001/favlist?fid=12345
   const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   const formatTime = (timestamp) =>
     timestamp ? new Date(timestamp * 1000).toLocaleString("zh-CN") : "";
+  const formatExportTime = (date) => {
+    const pad = (value) => String(value).padStart(2, "0");
+    return [
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate()),
+      "-",
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds()),
+    ].join("");
+  };
+  const sanitizeFileName = (value) => value.replace(/[\\/:*?"<>|]/g, "_").trim();
 
   try {
     const currentUrl = new URL(window.location.href);
     const mediaIdFromUrl = currentUrl.searchParams.get("fid") || "";
     const mediaIdInput = prompt(
-      "请输入收藏夹 ID（收藏夹页面 URL 中的 fid 参数）",
+      "请输入收藏夹 ID（fid）。在浏览器中打开目标收藏夹页面可自动获取，也可以手动填写 URL 中的 fid 参数。",
       mediaIdFromUrl,
     );
 
@@ -131,14 +146,27 @@ https://space.bilibili.com/10001/favlist?fid=12345
       }
     }
 
-    const header = ["标题", "UP主", "发布时间", "视频链接", "封面链接", "收藏夹标题"];
+    const header = [
+      "标题",
+      "简介",
+      "时长（s）",
+      "UP主",
+      "UP主id",
+      "发布时间",
+      "视频链接",
+      "封面链接",
+      "bvid",
+    ];
     const rows = videos.map((video) => [
       video.title,
+      video.intro,
+      video.duration,
       video.upper?.name,
+      video.upper?.mid,
       formatTime(video.pubtime),
       video.bvid ? `https://www.bilibili.com/video/${video.bvid}` : "",
       video.cover,
-      folderTitle,
+      video.bvid,
     ]);
     const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
 
@@ -146,7 +174,8 @@ https://space.bilibili.com/10001/favlist?fid=12345
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = downloadUrl;
-    link.download = `${folderTitle || `favlist-${mediaId}`}.csv`;
+    const fileName = sanitizeFileName(folderTitle || `favlist-${mediaId}`);
+    link.download = `${fileName}-${formatExportTime(new Date())}.csv`;
     link.click();
     URL.revokeObjectURL(downloadUrl);
 
@@ -173,11 +202,20 @@ https://space.bilibili.com/10001/favlist?fid=12345
 脚本会自动分页获取收藏夹中的视频信息，并导出 CSV 文件。导出内容包括：
 
 - 标题
+- 简介
+- 时长（s）
 - UP 主
+- UP 主 ID
 - 发布时间
 - 视频链接
 - 封面链接
-- 收藏夹标题
+- `bvid`：视频 BV 号
+
+CSV 文件名由收藏夹名称和导出时间组成，例如：
+
+```text
+我的收藏夹-20260601-163000.csv
+```
 
 ## 注意事项
 
