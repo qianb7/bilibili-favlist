@@ -153,6 +153,7 @@ https://space.bilibili.com/10001/favlist?fid=12345
       "UP主",
       "UP主id",
       "发布时间",
+      "收藏时间",
       "视频链接",
       "封面链接",
       "bvid",
@@ -164,6 +165,7 @@ https://space.bilibili.com/10001/favlist?fid=12345
       video.upper?.name,
       video.upper?.mid,
       formatTime(video.pubtime),
+      formatTime(video.fav_time),
       video.bvid ? `https://www.bilibili.com/video/${video.bvid}` : "",
       video.cover,
       video.bvid,
@@ -207,6 +209,7 @@ https://space.bilibili.com/10001/favlist?fid=12345
 - UP 主
 - UP 主 ID
 - 发布时间
+- 收藏时间
 - 视频链接
 - 封面链接
 - `bvid`：视频 BV 号
